@@ -61,7 +61,7 @@ This is the name of the clockify project to put the time under
 
 # Limitations
 
-Currently H2C is just a tool I use for my own very limited use case, so it is not very flexible. however I plan to expand it's capabilities when I have the time.
+Currently H2C is just a tool I use for my own very limited use case, so it is not very flexible. However I plan to expand it's capabilities when I have the time.
 
 Right now there is very little error checking functionality. As the project grows I will become more featureful and most likely more useful to many people.
 
