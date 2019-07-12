@@ -63,7 +63,7 @@ This is the name of the clockify project to put the time under
 
 Currently H2C is just a tool I use for my own very limited use case, so it is not very flexible. however I plan to expand it's capabilities when I have the time.
 
-Right now there is very little error checking functionality. As the project grows I will become more featureful and most likly more useful to many people.
+Right now there is very little error checking functionality. As the project grows I will become more featureful and most likely more useful to many people.
 
 # Contributions
 I am always open to contributions, if you want post an issue and I will try to work on it as soon as I can. However if there is an issue that you want to implement yourself, as I can get very busy and might not have time to do it myself. I will gladly merge in a helpful pull request.
