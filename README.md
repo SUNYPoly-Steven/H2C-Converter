@@ -2,7 +2,15 @@
 A converter from Harvest to Clockify, It will take the current weeks time entries from a configured Harvest account and create time entries in Clockify
 
 ## How to use
-After cloning the repository, fill in the environment variables in ```h2c.sh``` as described below. Then run the script with ```sh h2c.sh``` 
+After cloning the repository, fill in the environment variables in ```h2c.sh``` as described below.
+
+Make sure you have the required packages installed:
+  ```
+  pip install "python-harvest-redux>=3.0"
+  pip install requests
+  ```
+
+Then run the script with ```sh h2c.sh``` 
 
 ## Environment Variables
 Below is the list of environment variables the H2C uses to configure itself for your harvest and clockify accounts:
