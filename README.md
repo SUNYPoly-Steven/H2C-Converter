@@ -11,6 +11,7 @@ Make sure you have the required packages installed:
   ```
 
 Then run the script with ```sh h2c.sh``` 
+
 Use the ```-h``` option to look at the command line args
 
 ## Environment Variables
