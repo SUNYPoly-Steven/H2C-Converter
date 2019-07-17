@@ -340,7 +340,6 @@ except:
 
 # Apply any filters that may have been specified
 applyFilters(cmdl.filter)
-print (cmdl.dry_run)
 DRY_RUN_ENABLED = cmdl.dry_run
 
 
