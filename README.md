@@ -14,6 +14,8 @@ Then run the script with ```sh h2c.sh```
 
 Use the ```-h``` option to look at the command line args
 
+```sh h2c.sh -h```
+
 ## Environment Variables
 Below is the list of environment variables the H2C uses to configure itself for your harvest and clockify accounts:
 
