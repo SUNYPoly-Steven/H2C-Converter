@@ -235,9 +235,6 @@ def Clockify_CreateTimer(harvestClient, projectName, date_text):
         INFO(entries)
         return
 
-    ERROR("BAD RUN!")
-    return None
-
     for entry in entries:
         data = HarvestTimeEntryToClockifyJson(entry, date_text, projectId)
         url = CLOCKIFY_BASE_ENDPOINT + "/workspaces/" + Clockify_GetWorkspaceId() + "/time-entries"

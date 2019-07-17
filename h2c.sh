@@ -35,4 +35,4 @@ export H2C_CLOCKIFY_PROJECT_NAME=""
 
 
 # Run the H2C program (should be located in the same directory as this file)
-python3 "HarvestToClockify.py"
+python3 "HarvestToClockify.py" "$@"
