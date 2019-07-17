@@ -25,40 +25,50 @@ import datetime
 # Used to get environment variables for configuration (part of python stdlib)
 import os
 
+# USed to parse commandline args
+import argparse
 
-# Environment Variables to configure system
-# Harvest
-COMPANY_NAME = os.environ['H2C_HARVEST_COMPANY_NAME']
-EMAIL = os.environ['H2C_HARVEST_EMAIL']
-PASSWORD = os.environ['H2C_HARVEST_PASSWORD']
-
-# Clockify
-DEFAULT_START_TIME = os.environ['H2C_CLOCKIFY_START_TIME']
-CLOCKIFY_API_KEY = os.environ['H2C_CLOCKIFY_API_KEY']
-CLOCKIFY_PROJECT_NAME = os.environ['H2C_CLOCKIFY_PROJECT_NAME']
+# For handling SIGINT (aka: Ctrl + C)
+import signal
+import sys
 
 
-# Constants
-CLOCKIFY_BASE_ENDPOINT = "https://api.clockify.me/api/v1"
-CLOCKIFY_AUTH_HEADER = { "X-Api-Key" : CLOCKIFY_API_KEY }
+
+# Global Constants
+filterable_types = [ 'client', 'project', 'task' ]
+
+# Global Vars
+filters = { fType : [] for fType in filterable_types }
+DRY_RUN_ENABLED = False
+
+
+
+
+# Signal Handling
+def signal_handler(sig, frame):
+    # If you get an interupt, just exit
+    sys.exit(1)
+
+# Add the signal_handler
+signal.signal(signal.SIGINT, signal_handler)
+
 
 
 # Logging Functions
 def TRACE(string):
-    print("[H2C TRACE]: " + string)
+    print("[H2C TRACE]: " + str(string))
 
 
 def INFO(string):
-    print("\033[0;32m[H2C INFO]:\033[0m " + string)
+    print("\033[0;32m[H2C INFO]:\033[0m " + str(string))
 
 
 def WARN(string):
-    print("\033[0;33m[H2C WARNING]:\033[0m " + string)
+    print("\033[0;33m[H2C WARNING]:\033[0m " + str(string))
 
 
 def ERROR(string):
-    print("\033[0;31m[H2C ERROR]:\033[0m " + string)
-
+    print("\033[0;31m[H2C ERROR]:\033[0m " + str(string))
 
 
 
@@ -92,13 +102,51 @@ def GetCurrentWeek():
     dates = [today + datetime.timedelta(days=i) for i in range(0 - today.weekday(), 7 - today.weekday())]
     return dates
 
+def applyFilters(filter_strings):
+    if filter_strings == None:
+        return None
+
+    for criteria in filter_strings:
+        # Split the filter on the '='
+        strings = criteria.split('=')
+        
+        # Make sure criteria is vailid
+        if (len(strings) != 2):
+            WARN("Invalid filter criteria, the format should be '<type>=<string>'! '" + criteria + "'")
+            return None
+        # Strip any white space on both ends of the strings
+        for index, x in enumerate(strings):
+            strings[index] = x.strip()
+
+        if strings[0] not in filterable_types:
+            WARN("Filter Type '" + strings[0] + "' is NOT a valid type!")
+            WARN("the valid filter types are:")
+            for fType in filterable_types:
+                WARN("    " + fType)
+            return None
+        
+        filters[strings[0]].append(strings[1])
+    INFO("Applied filters " + str(filters))
+
+
+
+
+
 
 
 
 # Harvest Functions
 def Harvest_GetTimeEntriesOnDay(harvestClient, date_text):
         date = validateDate(date_text)
-        return harvestClient.get_day(int(date.timetuple().tm_yday), date.year)['day_entries']
+        all_entries = harvestClient.get_day(int(date.timetuple().tm_yday), date.year)['day_entries']
+
+        temp = []
+        for entry in all_entries:
+            for fType in filterable_types:
+                for filt in filters[fType]:
+                    if entry[fType] == filt:
+                        temp.append(entry)
+        return temp
 
 # Clockify Functions
 def Clockify_GetWorkspaceId():
@@ -182,6 +230,13 @@ def Clockify_GetTaskId(projectName, taskName):
 def Clockify_CreateTimer(harvestClient, projectName, date_text):
     projectId   = Clockify_GetProjectId(projectName)
     entries = Harvest_GetTimeEntriesOnDay(harvestClient, date_text)
+    
+    if DRY_RUN_ENABLED == True:
+        INFO(entries)
+        return
+
+    ERROR("BAD RUN!")
+    return None
 
     for entry in entries:
         data = HarvestTimeEntryToClockifyJson(entry, date_text, projectId)
@@ -196,9 +251,9 @@ def Clockify_CreateTimer(harvestClient, projectName, date_text):
             continue
 
         content = json.loads(resp.text)
-        print ("Successfully Created Time Entry:")
-        print ( json.dumps(content, indent=4, sort_keys=True) )
-        print("\n--------------------------------------------------------\n")
+        INFO("Successfully Created Time Entry:")
+        INFO( json.dumps(content, indent=4, sort_keys=True) )
+        INFO("")
 
 
 
@@ -240,7 +295,7 @@ def PrintDateInfo(client, date_text):
     INFO("")
 
 
-# Entry Point
+
 def main():
     client = harvest.Harvest(
         "https://" + COMPANY_NAME + ".harvestapp.com", EMAIL, PASSWORD)
@@ -250,6 +305,46 @@ def main():
     
     for date in dates:
         Clockify_CreateTimer(client, CLOCKIFY_PROJECT_NAME, str(date))
+
+
+
+# Entry Point
+# Commandline argument parser
+parser = argparse.ArgumentParser(description="Convert Harvest time entries into Clockify time entries.")
+
+# Add's argument for filtering harvest timers based on criteria
+parser.add_argument('-f', '--filter', nargs='+', metavar='string', help='Filter Harvest timers based on criteria (i.e. -f client=client_name)')
+parser.add_argument('--dry-run', action='store_true', default=False, help='Go through the entire time entry fetch process but do not post the entries to Clockify, just print then to stdout.')
+
+
+# Parse the commandline options
+cmdl = parser.parse_args()
+
+try:
+
+    # Environment Variables to configure system
+    # Harvest
+    COMPANY_NAME = os.environ['H2C_HARVEST_COMPANY_NAME']
+    EMAIL = os.environ['H2C_HARVEST_EMAIL']
+    PASSWORD = os.environ['H2C_HARVEST_PASSWORD']
+
+    # Clockify
+    DEFAULT_START_TIME = os.environ['H2C_CLOCKIFY_START_TIME']
+    CLOCKIFY_API_KEY = os.environ['H2C_CLOCKIFY_API_KEY']
+    CLOCKIFY_PROJECT_NAME = os.environ['H2C_CLOCKIFY_PROJECT_NAME']
+
+
+    # Constants
+    CLOCKIFY_BASE_ENDPOINT = "https://api.clockify.me/api/v1"
+    CLOCKIFY_AUTH_HEADER = { "X-Api-Key" : CLOCKIFY_API_KEY }
+
+except:
+    ERROR("Missing environment variable!")
+
+# Apply any filters that may have been specified
+applyFilters(cmdl.filter)
+print (cmdl.dry_run)
+DRY_RUN_ENABLED = cmdl.dry_run
 
 
 
