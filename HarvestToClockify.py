@@ -40,7 +40,8 @@ filterable_types = [ 'client', 'project', 'task' ]
 # Global Vars
 filters = { fType : [] for fType in filterable_types }
 DRY_RUN_ENABLED = False
-
+g_RoundTimeDelta = None
+g_ShouldRound = False
 
 
 
@@ -95,7 +96,7 @@ def AddTime(time_text, hours):
 
     delta = datetime.timedelta(hours=hoursInt, minutes=minutesInt)
 
-    return (time + delta).strftime("%H:%M:%S")
+    return (time + delta)
 
 def GetCurrentWeek():
     today = datetime.date.today()
@@ -130,6 +131,15 @@ def applyFilters(filter_strings):
 
 
 
+def roundUp(dt, delta):
+    return dt + (datetime.datetime.min - dt) % delta
+
+
+def roundTimeOptional(time, delta, shouldRound):
+    if shouldRound:
+        return roundUp(time, delta)
+    else:
+        return time
 
 
 
@@ -268,7 +278,7 @@ def HarvestTimeEntryToClockifyJson(harvestTimeEntry, date_text, clockifyProjectI
     json += '  "projectId": "' + clockifyProjectId + '",'
     json += '  "taskId": null,'
     json += '  "end": "' + date_text + 'T' + \
-        AddTime(DEFAULT_START_TIME, harvestTimeEntry['hours']) + '.000Z",'
+        roundTimeOptional(AddTime(DEFAULT_START_TIME, harvestTimeEntry['hours']), g_RoundTimeDelta, g_ShouldRound).strftime("%H:%M:%S") + '.000Z",'
     json += '  "tagIds": []'
     json += '}'
     INFO (json)
@@ -312,7 +322,7 @@ parser = argparse.ArgumentParser(description="Convert Harvest time entries into 
 # Add's argument for filtering harvest timers based on criteria
 parser.add_argument('-f', '--filter', nargs='+', metavar='string', help='Filter Harvest timers based on criteria (i.e. -f client=client_name)')
 parser.add_argument('--dry-run', action='store_true', default=False, help='Go through the entire time entry fetch process but do not post the entries to Clockify, just print then to stdout.')
-
+parser.add_argument('--round', type=int, metavar='minutes', help='The time in minutes to round UP to when converting time to Clockify')
 
 # Parse the commandline options
 cmdl = parser.parse_args()
@@ -341,7 +351,10 @@ except:
 # Apply any filters that may have been specified
 applyFilters(cmdl.filter)
 DRY_RUN_ENABLED = cmdl.dry_run
-
+g_ShouldRound = (cmdl.round != 0)
+print (cmdl.round)
+if cmdl.round != None:
+    g_RoundTimeDelta = datetime.timedelta(minutes=cmdl.round)
 
 
 # Call main function IFF this program is the main python program being run
